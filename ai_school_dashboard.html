@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI School — Cohort Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f4f5f7; color: #1a1a2e; }
+
+  header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: white;
+    padding: 28px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  header h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+  header span { font-size: 13px; opacity: 0.6; }
+
+  .page { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: #888;
+    margin-bottom: 14px;
+    margin-top: 32px;
+  }
+
+  /* KPI Grid */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .kpi-card {
+    background: white;
+    border-radius: 12px;
+    padding: 22px 24px;
+    border-top: 4px solid transparent;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  }
+  .kpi-card.c1 { border-top-color: #4361ee; }
+  .kpi-card.c2 { border-top-color: #f72585; }
+  .kpi-card .label { font-size: 12px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+  .kpi-card .number { font-size: 42px; font-weight: 800; line-height: 1; }
+  .kpi-card.c1 .number { color: #4361ee; }
+  .kpi-card.c2 .number { color: #f72585; }
+  .kpi-card .sub { font-size: 12px; color: #aaa; margin-top: 6px; }
+
+  /* Conversion */
+  .conv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .conv-card {
+    background: white;
+    border-radius: 12px;
+    padding: 22px 24px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  }
+  .conv-card .top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+  .conv-card .top h3 { font-size: 14px; font-weight: 600; color: #555; }
+  .conv-card .pct { font-size: 24px; font-weight: 800; }
+  .conv-card.c1 .pct { color: #4361ee; }
+  .conv-card.c2 .pct { color: #f72585; }
+  .bar-bg { background: #f0f0f0; border-radius: 99px; height: 10px; overflow: hidden; }
+  .bar-fill { height: 10px; border-radius: 99px; }
+  .c1 .bar-fill { background: #4361ee; }
+  .c2 .bar-fill { background: #f72585; }
+  .conv-card .detail { font-size: 12px; color: #aaa; margin-top: 8px; }
+
+  /* Chart */
+  .chart-card {
+    background: white;
+    border-radius: 12px;
+    padding: 28px 28px 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  }
+  .chart-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 20px; color: #333; }
+  .chart-wrap { position: relative; height: 240px; }
+
+  /* Table */
+  .table-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    overflow: hidden;
+  }
+  .table-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .table-header h3 { font-size: 15px; font-weight: 700; color: #333; }
+  .badge {
+    background: #f72585;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 99px;
+    padding: 3px 10px;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    background: #fafafa;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #999;
+    padding: 11px 24px;
+    text-align: left;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  thead th.center { text-align: center; }
+  tbody tr { border-bottom: 1px solid #f7f7f7; transition: background 0.15s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #fafbff; }
+  tbody td { padding: 14px 24px; font-size: 14px; }
+  tbody td.center { text-align: center; }
+  .name { font-weight: 600; color: #1a1a2e; }
+  .email { font-size: 12px; color: #888; margin-top: 2px; }
+  .date-pill {
+    background: #fff0f8;
+    color: #f72585;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 6px;
+    padding: 3px 8px;
+    display: inline-block;
+  }
+
+  /* Checkbox toggle */
+  .toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+  .toggle input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #4361ee;
+    cursor: pointer;
+  }
+  .toggle-label { font-size: 12px; color: #aaa; user-select: none; }
+  .toggle input:checked + .toggle-label { color: #4361ee; font-weight: 600; }
+
+  /* Cohort 1 table */
+  .c1-table-wrap { overflow-x: auto; }
+  .c1-note { padding: 14px 24px; font-size: 13px; color: #888; background: #fafafa; border-top: 1px solid #f0f0f0; }
+
+  @media (max-width: 768px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .conv-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎓 AI School — Cohort Dashboard</h1>
+  <span>Last pulled: May 5, 2026 · Source: HubSpot</span>
+</header>
+
+<div class="page">
+
+  <!-- COHORT 1 KPIs -->
+  <div class="section-label">Cohort 1 — Before April 17, 2026</div>
+  <div class="kpi-grid">
+    <div class="kpi-card c1">
+      <div class="label">Total Sign-ups</div>
+      <div class="number">272</div>
+      <div class="sub">All applicants before Apr 17</div>
+    </div>
+    <div class="kpi-card c1">
+      <div class="label">Paid Enrollees</div>
+      <div class="number">55</div>
+      <div class="sub">Marked as paid in HubSpot</div>
+    </div>
+    <div class="kpi-card c1">
+      <div class="label">Conversion Rate</div>
+      <div class="number">20.2%</div>
+      <div class="sub">Paid ÷ sign-ups</div>
+    </div>
+    <div class="kpi-card c1">
+      <div class="label">Not Yet Paid</div>
+      <div class="number">217</div>
+      <div class="sub">Signed up but unpaid</div>
+    </div>
+  </div>
+
+  <!-- COHORT 2 KPIs -->
+  <div class="section-label">Cohort 2 — April 17, 2026 Onwards</div>
+  <div class="kpi-grid">
+    <div class="kpi-card c2">
+      <div class="label">Total Sign-ups</div>
+      <div class="number">263</div>
+      <div class="sub">All applicants from Apr 17</div>
+    </div>
+    <div class="kpi-card c2">
+      <div class="label">Paid Enrollees</div>
+      <div class="number">6</div>
+      <div class="sub">Marked as paid in HubSpot</div>
+    </div>
+    <div class="kpi-card c2">
+      <div class="label">Conversion Rate</div>
+      <div class="number">2.3%</div>
+      <div class="sub">Paid ÷ sign-ups</div>
+    </div>
+    <div class="kpi-card c2">
+      <div class="label">Not Yet Paid</div>
+      <div class="number">257</div>
+      <div class="sub">Signed up but unpaid</div>
+    </div>
+  </div>
+
+  <!-- CONVERSION BARS -->
+  <div class="section-label">Conversion Comparison</div>
+  <div class="conv-grid">
+    <div class="conv-card c1">
+      <div class="top">
+        <h3>Cohort 1 — Sign-up to Paid</h3>
+        <span class="pct">20.2%</span>
+      </div>
+      <div class="bar-bg"><div class="bar-fill" style="width: 20.2%"></div></div>
+      <div class="detail">55 paid out of 272 sign-ups</div>
+    </div>
+    <div class="conv-card c2">
+      <div class="top">
+        <h3>Cohort 2 — Sign-up to Paid</h3>
+        <span class="pct">2.3%</span>
+      </div>
+      <div class="bar-bg"><div class="bar-fill" style="width: 2.3%"></div></div>
+      <div class="detail">6 paid out of 263 sign-ups (cohort still early)</div>
+    </div>
+  </div>
+
+  <!-- CHART -->
+  <div class="section-label">Monthly Sign-ups</div>
+  <div class="chart-card">
+    <h3>Sign-ups by Month</h3>
+    <div class="chart-wrap">
+      <canvas id="signupChart"></canvas>
+    </div>
+  </div>
+
+  <!-- COHORT 2 ENROLLEE TABLE -->
+  <div class="section-label">Cohort 2 Enrollee Tracker</div>
+  <div class="table-card">
+    <div class="table-header">
+      <h3>All Paid Enrollees — Cohort 2</h3>
+      <span class="badge">6 enrollees</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Name</th>
+          <th>Date Enrolled</th>
+          <th class="center">LMS Added</th>
+          <th class="center">Slack Added</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="color:#ccc;font-size:13px">1</td>
+          <td>
+            <div class="name">Shalimar Beron</div>
+            <div class="email">shalimarberon@gmail.com</div>
+          </td>
+          <td><span class="date-pill">Apr 18, 2026</span></td>
+          <td class="center">
+            <label class="toggle">
+              <input type="checkbox" onchange="saveCheck(this,'lms_1')">
+              <span class="toggle-label">Done</span>
+            </label>
+          </td>
+          <td class="center">
+            <label class="toggle">
+              <input type="checkbox" onchange="saveCheck(this,'slack_1')">
+              <span class="toggle-label">Done</span>
+            </label>
+          </td>
+        </tr>
+        <tr>
+          <td style="color:#ccc;font-size:13px">2</td>
+          <td>
+            <div class="name">Elijah John Yarra</div>
+            <div class="email">ejgy.me@gmail.com</div>
+          </td>
+          <td><span class="date-pill">Apr 25, 2026</span></td>
+          <td class="center">
+            <label class="toggle">
+              <input type="checkbox" onchange="saveCheck(this,'lms_2')">
+              <span class="toggle-label">Done</span>
+            </label>
+          </td>
+          <td class="center">
+            <label class="toggle">
+              <input type="checkbox" onchange="saveCheck(this,'slack_2')">
+              <span class="toggle-label">Done</span>
+            </label>
+          </td>
+        </tr>
+        <tr>
+          <td style="color:#ccc;font-size:13px">3</td>
+          <td>
+            <div class="name">Santiago Ezequiel Meza Quiroz</div>
+            <div class="email">santquiroz@protonmail.com</div>
+          </td>
+          <td><span class="date-pill">Apr 26, 2026</span></td>
+          <td class="center">
+            <label class="toggle">
+              <input type="checkbox" onchange="saveCheck(this,'lms_3')">
+              <span class="toggle-label">Done</span>
+            </label>
+          </td>
+          <td class="center">
+            <label class="toggle">
+              <input type="checkbox" onchange="saveCheck(this,'slack_3')">
+              <span class="toggle-label">Done</span>
+            </label>
+          </td>
+        </tr>
+        <tr>
+          <td style="color:#ccc;font-size:13px">4</td>
+          <td>
+            <div class="name">Joy Castaneda</div>
+            <div class="email">joycastaneda@outlook.com</div>
+          </td>
+          <td><span class="date-pill">Apr 28, 2026</span></td>
+          <td class="center">
+            <label class="toggle">
+              <input type="checkbox" onchange="saveCheck(this,'lms_4')">
+              <span class="toggle-label">Done</span>
+            </label>
+          </td>
+          <td class="center">
+            <label class="toggle">
+              <input type="checkbox" onchange="saveCheck(this,'slack_4')">
+              <span class="toggle-label">Done</span>
+            </label>
+          </td>
+        </tr>
+        <tr>
+          <td style="color:#ccc;font-size:13px">5</td>
+          <td>
+            <div class="name">Carilyn Shaera Viado</div>
+            <div class="email">carilynshaera14@gmail.com</div>
+          </td>
+          <td><span class="date-pill">Apr 30, 2026</span></td>
+          <td class="center">
+            <label class="toggle">
+              <input type="checkbox" onchange="saveCheck(this,'lms_5')">
+              <span class="toggle-label">Done</span>
+            </label>
+          </td>
+          <td class="center">
+            <label class="toggle">
+              <input type="checkbox" onchange="saveCheck(this,'slack_5')">
+              <span class="toggle-label">Done</span>
+            </label>
+          </td>
+        </tr>
+        <tr>
+          <td style="color:#ccc;font-size:13px">6</td>
+          <td>
+            <div class="name">Robert Olin</div>
+            <div class="email">robo78640@gmail.com</div>
+          </td>
+          <td><span class="date-pill">May 2, 2026</span></td>
+          <td class="center">
+            <label class="toggle">
+              <input type="checkbox" onchange="saveCheck(this,'lms_6')">
+              <span class="toggle-label">Done</span>
+            </label>
+          </td>
+          <td class="center">
+            <label class="toggle">
+              <input type="checkbox" onchange="saveCheck(this,'slack_6')">
+              <span class="toggle-label">Done</span>
+            </label>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="c1-note">✓ Check the boxes as you add each person to LMS and Slack. Checks save automatically in your browser.</div>
+  </div>
+
+  <!-- COHORT 1 ENROLLEE COUNT NOTE -->
+  <div class="section-label">Cohort 1 — Paid Enrollees (55 total)</div>
+  <div class="table-card">
+    <div class="table-header">
+      <h3>All Paid Enrollees — Cohort 1</h3>
+      <span class="badge" style="background:#4361ee">55 enrollees</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Date Created</th>
+        </tr>
+      </thead>
+      <tbody id="c1tbody">
+      </tbody>
+    </table>
+    <div class="c1-note">Showing all 55 Cohort 1 paid enrollees pulled from HubSpot (ai_school_paid = Yes, created before Apr 17, 2026).</div>
+  </div>
+
+  <div style="height:40px"></div>
+</div>
+
+<script>
+// Persist checkboxes
+function saveCheck(el, key) {
+  localStorage.setItem(key, el.checked);
+  el.nextElementSibling.textContent = el.checked ? 'Done' : 'Done';
+}
+document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+  const key = cb.getAttribute('onchange').match(/'([^']+)'/)[1];
+  if (localStorage.getItem(key) === 'true') cb.checked = true;
+});
+
+// Chart
+const ctx = document.getElementById('signupChart').getContext('2d');
+new Chart(ctx, {
+  type: 'bar',
+  data: {
+    labels: ['Jul–Sep 2025', 'Oct–Dec 2025', 'Jan 2026', 'Feb 2026', 'Mar 2026', 'Apr 1–16', 'Apr 17–30', 'May 2026'],
+    datasets: [
+      {
+        label: 'Cohort 1 Sign-ups',
+        data: [9, 5, 195, 48, 9, 6, 0, 0],
+        backgroundColor: '#4361ee',
+        borderRadius: 6,
+      },
+      {
+        label: 'Cohort 2 Sign-ups',
+        data: [0, 0, 0, 0, 0, 0, 215, 48],
+        backgroundColor: '#f72585',
+        borderRadius: 6,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'top', labels: { font: { size: 12 }, boxWidth: 12 } },
+      tooltip: { mode: 'index' }
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+      y: { beginAtZero: true, ticks: { font: { size: 11 } }, grid: { color: '#f0f0f0' } }
+    }
+  }
+});
+
+// Cohort 1 enrollee table data
+const c1 = [
+  ["Quino Reyes","qnreyes650@gmail.com","Jul 23, 2025"],
+  ["Warlito Viguilla","ke2000a@gmail.com","Sep 17, 2025"],
+  ["Mariafernanda Lopez","mariafernanda.lopezglez@gmail.com","Oct 28, 2025"],
+  ["Kimberly Grace Maribao","kimberlygrace.maribao@gmail.com","Jan 2, 2026"],
+  ["Bernadette Basco","bernadettebasco0@gmail.com","Jan 3, 2026"],
+  ["Arien Ladip","arnldp03@gmail.com","Jan 3, 2026"],
+  ["Angelika Vico","angelikavicoph@gmail.com","Jan 3, 2026"],
+  ["Arvin Grepo","arvingrepo@gmail.com","Jan 6, 2026"],
+  ["Tariro Jimha","tarirojimha@gmail.com","Jan 7, 2026"],
+  ["Janella Mei Buban","janellamdb2@gmail.com","Jan 7, 2026"],
+  ["Carla Mae Arciaga","carlamaearciaga@gmail.com","Jan 7, 2026"],
+  ["Consolata Nganga","consolata.wanjiku.nganga@gmail.com","Jan 8, 2026"],
+  ["John Ryan Aguila","aguilajohnryan@gmail.com","Jan 8, 2026"],
+  ["Nicole Narvato","narvatonicole@gmail.com","Jan 8, 2026"],
+  ["Nathaniel Natividad","ncnatividad.jobs@gmail.com","Jan 8, 2026"],
+  ["Ma. Isabelle Mangaliag","isabelle.upvtc@gmail.com","Jan 8, 2026"],
+  ["Alexandra Mae Babista","alexandra.babistaa@gmail.com","Jan 8, 2026"],
+  ["Bree Noquillo","bnoquillo@gmail.com","Jan 8, 2026"],
+  ["Christine Chicano","woshilisiyi@gmail.com","Jan 9, 2026"],
+  ["Alfredo Zapata","alfredo094@outlook.com","Jan 9, 2026"],
+  ["Marc Rovy Bautista","marcrovy@gmail.com","Jan 9, 2026"],
+  ["Jose Tomas","josetom@owmon.info","Jan 9, 2026"],
+  ["Maria Jolina Lechoncito","mlechoncito@ateneo.edu","Jan 14, 2026"],
+  ["Jacent Osorio","jacent.osorio@gmail.com","Jan 14, 2026"],
+  ["Juan Miguel Banatin","juanmiguele.banatin@gmail.com","Jan 17, 2026"],
+  ["Charity Wanjiku","wanjicharity16@gmail.com","Jan 19, 2026"],
+  ["Alyanna Camille de Leon","alyannatdeleon@gmail.com","Jan 23, 2026"],
+  ["Bernadette Cativo","bernadette.cativo@gmail.com","Jan 23, 2026"],
+  ["Maria Shenna Mae Valdejueza","msvaldejueza@icloud.com","Jan 23, 2026"],
+  ["YOSHA BELE PUBLICO","yoshabelep@gmail.com","Jan 23, 2026"],
+  ["Joey Zheeg Fred Borre","joeyzheegfred@gmail.com","Jan 23, 2026"],
+  ["Mauricio Zarate","josemauriciozaratepisquiy@gmail.com","Jan 27, 2026"],
+  ["Reno Rossel Valdehueza","renravaldehueza@gmail.com","Jan 28, 2026"],
+  ["Sheila Urbano","usheila27@gmail.com","Jan 29, 2026"],
+  ["Jairus John Fontanos","jairusfontanos@gmail.com","Jan 29, 2026"],
+  ["Allen Mae Villarin","allenmae10romeo@gmail.com","Jan 30, 2026"],
+  ["Ibeth Lopez","ibeth.lopezmarroquin@gmail.com","Jan 31, 2026"],
+  ["Maria Vanessa Flores","mvlfrmt@gmail.com","Feb 2, 2026"],
+  ["Zazil Varguez","zazil.varguez@gmail.com","Feb 11, 2026"],
+  ["Arian","arian.inqiry@gmail.com","Feb 12, 2026"],
+  ["Francis Panuncialman","fvpanuncialman@gmail.com","Feb 18, 2026"],
+  ["Toba Falade","faladetoba@gmail.com","Feb 18, 2026"],
+  ["Larraine Carpeso","lppcarpeso@gmail.com","Feb 19, 2026"],
+  ["Arissa Ina Claur","aclaur1430@gmail.com","Feb 20, 2026"],
+  ["Angely Entienza","angelyentienza@gmail.com","Feb 21, 2026"],
+  ["Jonathan Delos Santos","jonathands1018@gmail.com","Feb 21, 2026"],
+  ["Charm Dizon","va.charmdizon@gmail.com","Feb 21, 2026"],
+  ["Amparo Liza Escolar","lizacescolar@gmail.com","Feb 21, 2026"],
+  ["Ira Frondozo","membershipmy0.3@gmail.com","Feb 21, 2026"],
+  ["Ardee Salvador","salvadorardee902404@gmail.com","Feb 21, 2026"],
+  ["Achilles Tan","achillestan@outlook.com","Feb 22, 2026"],
+  ["ADLER ALYCE ALEA","adleralycealea.ptrp@gmail.com","Feb 23, 2026"],
+  ["Cristiana Bugay","bugay.cristiana@gmail.com","Feb 23, 2026"],
+  ["Giana Lee","gianadominique7@gmail.com","Jan 13, 2026"],
+  ["Myka Test (internal)","myka@pearltalent.com","Oct 31, 2025"],
+];
+
+const tbody = document.getElementById('c1tbody');
+c1.forEach((r, i) => {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td style="color:#ccc;font-size:13px">${i+1}</td>
+    <td><div class="name">${r[0]}</div></td>
+    <td><div class="email">${r[1]}</div></td>
+    <td><span class="date-pill" style="background:#f0f4ff;color:#4361ee">${r[2]}</span></td>
+  `;
+  tbody.appendChild(tr);
+});
+</script>
+</body>
+</html>
